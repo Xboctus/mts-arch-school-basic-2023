@@ -8,72 +8,67 @@
 ```plantuml
 @startuml
 ' Логическая модель данных в варианте UML Class Diagram (альтернатива ER-диаграмме).
-namespace ShoppingCart {
+namespace Report {
 
- class ShoppingCart
+ class Report
  {
-  id : string
+  id : int
+  version : int
+  topic : string
+  createDate : datetime
+  artifacts : Artifact[]
+  status : ReportStatus
+  author : User
+ }
+ 
+ class Review
+ {
+  id : int
   createDate : datetime
   updateDate : datetime
-  customer : Customer
-  price : ShoppingCartPrice
-  cartItems : CartItem[]
- }
-
- class ShoppingCartPrice
- {
-  type : CartItemPrice
- }
- class CartItemPrice
- {
-  type : CartItemPriceType
- }
-
- enum CartPriceType
- {
-  total
-  grandTotal
-  offeringDiscount
-  couponsDiscount
- }
-
- class CartItem
- {
-  id : string
-  quantity : int
-  offering : Offering
-  relationship : CartItemRelationShip[]
-  price : CartItemPrice[]
-  status : CartItemStatus
- }
-
-  class Customer
- {
-  id : string
+  report : Report
+  artifacts : Artifact[]
+  status : ReviewStatus
+  author : User
  }
  
- class Offering
+ enum ReviewStatus
  {
-  id : string
-  isQuantifiable : boolean
-  actionType : OfferingActionType
-  validFor : ValidFor
+  started
+  submitted
  }
-  
- class ProductSpecificationRef
+
+ enum ReportStatus
+ {
+  submitted
+  onReview
+  rejected
+  approved
+  candidate
+  scheduled
+  done
+ }
+
+ class Artifact
  {
   id : string
+  type : ArtifactType
+  link : string
  }
  
- ShoppingCart *-- "1..*" ShoppingCartPrice
- ShoppingCartPrice -- CartPriceType
- ShoppingCart *-- "*" CartItem
- CartItem *-- "*" CartItemPrice
- CartItemPrice -- CartPriceType
- CartItem *-- "1" Offering
- Offering *-- "1" ProductSpecificationRef
- Offering *-- "0..1" ProductConfiguration
- ShoppingCart *-- "1" Customer
+ enum ArtifactType
+ {
+  presentation
+  thesis
+  preparationRunVideo
+  review
+ }
+ 
+ Report *-- "1..*" Artifact
+ Report -- ReportStatus
+ Review -- ReviewStatus
+ Review -- Report
+ Artifact -- ArtifactType
 }
 
 namespace Ordering {
