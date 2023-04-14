@@ -12,7 +12,7 @@ namespace Report {
 
  class Report
  {
-  id : int
+  id : long
   version : int
   topic : string
   createDate : datetime
@@ -23,7 +23,7 @@ namespace Report {
  
  class Review
  {
-  id : int
+  id : uuid
   createDate : datetime
   updateDate : datetime
   report : Report
@@ -56,6 +56,14 @@ namespace Report {
   link : string
  }
  
+ class User
+ {
+  id : string
+  login : string
+  name : string
+  role : string[]
+ }
+ 
  enum ArtifactType
  {
   presentation
@@ -66,26 +74,107 @@ namespace Report {
  
  Report *-- "1..*" Artifact
  Report -- ReportStatus
+ Report -- User
  Review -- ReviewStatus
  Review -- Report
+ Review -- User
  Artifact -- ArtifactType
 }
 
-namespace Ordering {
- ProductOrder *-- OrderItem
- OrderItem *-- Product
- Product *-- ProductSpecificationRef
- ProductOrder *-- Party
+namespace Conference {
+
+class Conference {
+    id: uuid
+    title: string
+    reports: ReportRef[]
+    status: ConferenceStatus
+    schedule: Schedule
+    onlineLink: string
+    offlinePlace: OfflinePlace
 }
 
-namespace ProductCatalog {
- ShoppingCart.ProductSpecificationRef ..> ProductSpecification : ref
- Ordering.ProductSpecificationRef ..> ProductSpecification : ref
+class Schedule {
+    id: uuid
+    title: string
+    scheduleItem: ScheduleItem[]
+    status: ScheduleStatus
 }
 
-namespace CX {
- ShoppingCart.Customer ..> Customer : ref
- Ordering.Party ..> Customer : ref
+class ScheduleItem {
+    id: uuid
+    report: Report
+    startTime: datetime
+    duration: datetime
+    feedback: Feedback[]
 }
+
+class Feedback {
+    id: uuid
+    user: User
+    text: string
+}
+
+
+enum ScheduleStatus
+ {
+  created
+  considered
+  approved
+  rejected
+ }
+
+
+enum ConferenceStatus
+ {
+  created
+  prepared
+  started
+  finished
+ }
+ 
+ class OfflinePlace {
+    id: uuid
+    title: string
+    address: Address
+    contacts: Contact[]
+    documents: Document[]
+    bookingDate: datetime
+}
+
+class Address {
+    id: uuid
+    city: string
+    index: string
+    street: string
+    building: string
+    room: string
+}
+
+class Contact {
+    id: uuid
+    name: string
+    phone: string
+    email: string
+}
+
+class Document {
+    id: uuid
+    link: string
+}
+
+ Conference.Conference *--"1..*" Conference.ReportRef
+ Conference.ReportRef ..> Report.Report : ref
+ Conference -- ConferenceStatus
+ Conference *-- "0..*" Schedule 
+ Schedule -- ScheduleStatus
+ Schedule *-- "0..*" ScheduleItem
+ Conference.ScheduleItem -- Conference.ReportRef
+ Conference -- OfflinePlace
+ OfflinePlace -- Address
+ OfflinePlace *-- "1..*" Contact
+ OfflinePlace *-- "0..*" Document
+ ScheduleItem *-- "0..*" Feedback
+}
+
 @enduml
 ```
