@@ -11,46 +11,65 @@
 
 AddElementTag("microService", $shape=EightSidedShape(), $bgColor="CornflowerBlue", $fontColor="white", $legendText="microservice")
 AddElementTag("storage", $shape=RoundedBoxShape(), $bgColor="lightSkyBlue", $fontColor="white")
+AddElementTag("file_storage", $shape=RoundedBoxShape(), $bgColor="lightGrey", $fontColor="white")
 
-Person(customer, "Покупатель", "B2C клиент")
+Person(doc, "Докладчик", "Человек, который предоставляет доклад")
+Person(rew, "Рецензент", "Человек, который оценивает доклад и предоставляет отзыв на него")
+Person(lis, "Слушатель", "Человек, который посещает конференцию в качестве слушателя")
+Person(adm, "Администратор", "Человек, который осуществляет управление конференцией")
 
-System_Boundary(c, "MTS Shop Lite") {
-   Container(app, "Клиентское веб-приложение", "html, JavaScript, Angular", "Портал интернет-магазина")
-   Container(offering_service, "Product Offering Service", "Java, Spring Boot", "Сервис управления продуктовым предложением", $tags = "microService")      
-   ContainerDb(offering_db, "Product Catalog", "PostgreSQL", "Хранение продуктовых предложений", $tags = "storage")
+System_Boundary(c, "Система конференций") {
+   Container(app_doc, "Клиентское веб-приложение", "html, JavaScript, Angular", "Портал докладчика")
+   Container(app_rew, "Клиентское веб-приложение", "html, JavaScript, Angular", "Портал рецензента")
+   Container(report_service, "Report Service", "Java, Spring Boot", "Сервис управления докладами", $tags = "microService")      
+   ContainerDb(report_db, "Report Catalog", "PostgreSQL", "Хранение докладов", $tags = "storage")
+   ContainerDb(report_s3, "Artifact Storage", "S3 (minio)", "Хранение артифактов", $tags = "file_storage")
    
-   Container(ordering_service, "Product Ordering Service", "Golang, nginx", "Сервис управления заказом", $tags = "microService")      
-   ContainerDb(ordering_db, "Order Inventory", "MySQL", "Хранение заказов", $tags = "storage")
-    
-   Container(message_bus, "Message Bus", "RabbitMQ", "Транспорт для бизнес-событий")
-   Container(audit_service, "Audit Service", "C#/.NET", "Сервис аудита", $tags = "microService")      
-   Container(audit_store, "Audit Store", "Event Store", "Хранение произошедших события для аудита", $tags = "storage")
+   Container(app_adm, "Клиентское веб-приложение", "html, JavaScript, Angular", "Портал администратора конференции")
+   Container(conference_service, "Conference Service", "Java, Spring Boot", "Сервис управления конференцией", $tags = "microService")      
+   ContainerDb(conference_db, "Conference Inventory", "PostgreSQL", "Хранение метаданных конференции", $tags = "storage")
+   
+   Container(app_lis, "Клиентское веб-приложение", "html, JavaScript, Angular", "Портал слушателя")
 }
 
-System_Ext(logistics_system, "msLogistix", "Система управления доставкой товаров.")  
+System_Ext(video_system, "Streaming provider", "Платформа для онлайн стриминга видео")
 
-Lay_R(offering_service, ordering_service)
-Lay_R(offering_service, logistics_system)
-Lay_D(offering_service, audit_service)
+Rel(doc, app_doc, "Работа с докладом", "HTTPS")
+Rel(app_doc, report_service, "Управление докладом", "JSON, HTTPS")
 
-Rel(customer, app, "Оформление заказа", "HTTPS")
-Rel(app, offering_service, "Выбор продуктов для корзины(Продукт):корзина", "JSON, HTTPS")
+Rel(rew, app_rew, "Работа с рецензией", "HTTPS")
+Rel(app_rew, report_service, "Управление рецензией", "JSON, HTTPS")
 
-Rel(offering_service, message_bus, "Отправка заказа(Корзина)", "AMPQ")
-Rel(offering_service, offering_db, "Сохранение продуктового предложения(Продуктовая спецификация)", "JDBC, SQL")
+Rel(report_service, report_db, "Сохранение метаданных докладов", "JDBC, SQL")
+Rel(report_service, report_s3, "Сохранение артифактов докладов", "S3, HTTPS")
 
-Rel(ordering_service, message_bus, "Получение заказа: Корзина", "AMPQ")
-Rel_U(audit_service, message_bus, "Получение события аудита(Событие)", "AMPQ")
+Rel(adm, app_adm, "Работа с параметрами конференции", "HTTPS")
+Rel(app_adm, conference_service, "Управление рецензией", "JSON, HTTPS")
 
-Rel(ordering_service, ordering_db, "Сохранение заказа(Заказ)", "SQL")
-Rel(audit_service, audit_store, "Сохранение события(Событие)")
-Rel(ordering_service, logistics_system, "Доставка(Наряд на доставку):Трекинг", "JSON, HTTP")  
+Rel(conference_service, report_service, "Включение докладов в конференцию", "JSON, HTTPS")
+Rel(conference_service, conference_db, "Сохранение метаданных конференции", "JDBC, SQL")
+
+Rel(lis, app_lis, "Просмотр конференции", "HTTPS")
+Rel(app_lis, video_system, "Встраивание плеера", "HTTPS")
+Rel(conference_service, video_system, "Настройка видеоконференции по расписанию", "HTTPS")
+
+Lay_R(doc, rew)
+Lay_R(adm, lis)
+Lay_D(rew, doc)
 
 SHOW_LEGEND()
 @enduml
 ```
 
 ## Список компонентов
-| Компонент             | Роль/назначение                  |
-|:----------------------|:---------------------------------|
-| *Название компонента* | *Описание назначения компонента* |
+| Компонент             | Роль/назначение                                                                                                                                  |
+|:----------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------|
+| Портал докладчика | Предоставляет интерфейс управления докладами (загрузка новых версий, просмотр рецензий, получения подтверждения включения доклада в конференцию) |
+| Портал рецензента | Предоставляет интерфейс управления рецензиями (просмотр доклада, создание рецензии, обновление рецензии)                                         |
+| Report Service | Предоставляет инструменты работы с докладами и рецензиями (сохранение, изменение, выгрузка)                                                      |
+| Report Catalog | Хранилище метаинформации о докладах и рецензиях                                                                                                  |
+| Artifact Storage | Хранилище артифактов (докладов, рецензий)                                                                                                        |
+| Портал администратора конференции | Предоставляет интерфейс управления конференцией (отбор докладов, составление расписаний, заказ площадок)                                         |
+| Conference Service | Предоставляет инструменты работы с конференцией                                                                                                  |
+| Conference Inventory | Хранение данных о конференции                                                                                                                    |
+| Портал слушателя | Предоставляет интерфейс для слушателя (подключение к конференции, обратная связь)                                                                |
