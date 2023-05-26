@@ -67,7 +67,7 @@ def get_presentation(title):
     return presentation
 
 
-@circuit(failure_threshold=5, recovery_timeout=10, expected_exception=HTTPException,
+@circuit(failure_threshold=2, recovery_timeout=15, expected_exception=HTTPException,
          fallback_function=author_circuit_exception)
 def get_author(id):
     try:
